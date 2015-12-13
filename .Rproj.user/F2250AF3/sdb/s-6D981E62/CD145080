@@ -1,0 +1,17 @@
+{
+    "contents" : "Package: PackagePrueba\nType: Package\nTitle: Test Package\nVersion: 0.1\nDate: 2015-08-08\nAuthor: Deyber Valencia\nMaintainer: Deyber Valencia <deavalenciago@unal.edu.co>\nDescription: This is my hello world package\nLicense: GPL-2\nLazyData: TRUE\n",
+    "created" : 1439054762896.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1010916559",
+    "id" : "CD145080",
+    "lastKnownWriteTime" : 1439073792,
+    "path" : "~/PackagePrueba/DESCRIPTION",
+    "project_path" : "DESCRIPTION",
+    "properties" : {
+    },
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "type" : "dcf"
+}

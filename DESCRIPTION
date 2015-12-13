@@ -1,0 +1,10 @@
+Package: PackagePrueba
+Type: Package
+Title: Test Package
+Version: 0.1
+Date: 2015-08-08
+Author: Deyber Valencia
+Maintainer: Deyber Valencia <deavalenciago@unal.edu.co>
+Description: This is my hello world package
+License: GPL-2
+LazyData: TRUE

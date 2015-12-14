@@ -17,7 +17,7 @@ amnfis <- function(X, d, k){
     i = 0
 
     object$C = matrix(data = params[i:(i + k * n)],
-                      nrow = n, ncol = k)
+                      nrow = k, ncol = n)
     i = i + k * n + 1
 
     object$phi_0 = matrix(data = params[i: (i + k -1)],
@@ -122,24 +122,22 @@ loadRandomPhi <- function(k ,n){
 loadClusters <- function(n, k){
   #d = c(-1.6260988,-0.5021358,1.2773631,-0.6000955,0.302947,0.7021099,1.5672107,0.757111)
   #CLUSTER = matrix(d, nrow = n, ncol = k)
-  CLUSTER = matrix(rnorm(n * k), nrow = n, ncol = k)#raandom values
+  CLUSTER = matrix(rnorm(n * k), nrow = k, ncol = n)#raandom values
   return(CLUSTER)
 }
 
-getXiCiDistances <- function(X, C){
-  #print('loading distances from xi to cluster ci')
-  CT = t(C)#traspuesta de la matrix de clusters
-  m = dim(X)[1]
-  k = dim(CT)[1]
-  mat = createMatrix(m,k)
-  for(i in 1:m){
-    for(j in 1:k){
-      mat[i,j] = sum((X[i,] - CT[j,])^2)# calcula la distancia de cada dato de entrada a cada cluster
-    }
-  }
-  #print("xi to ci distances loaded...")
-  #xiDistances = replicate(k, rnorm(n))#k es el numero de columnas = numero de clusters y n es el numero de atributos(filas)
-  return(mat)
+getXiCiDistances <- function(X, C){#prueba
+#   CT = t(C)#traspuesta de la matrix de clusters
+#   m = dim(X)[1]
+#   k = dim(CT)[1]
+#   mat = createMatrix(m,k)
+#   for(i in 1:m){
+#     for(j in 1:k){
+#       mat[i,j] = sum((X[i,] - CT[j,])^2)# calcula la distancia de cada dato de entrada a cada cluster
+#     }
+#   }
+  D = rdist(X,C)^2
+  return(D)
 }
 
 #Recibe la matriz de distancias y calcula la contribucion de cada dato a cada cluster

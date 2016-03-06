@@ -6,55 +6,56 @@
 #' @export
 #'
 amnfis <- function(X, d, k){
-
+  
   ################FUNCIONES AUXILIARES###################
-
+  
   object2Params <- function(object){
     return(c(c(object$C), c(object$phi_0), c(object$PHI)))
   }
-
+  
   params2Object <- function(object, params, k, n, m){
     i = 0
-
+    
     object$C = matrix(data = params[i:(i + k * n)],
                       nrow = k, ncol = n)
     i = i + k * n + 1
-
-    object$phi_0 = matrix(data = params[i: (i + k -1)],
-                          nrow = k, ncol = 1)
+    
+    object$phi_0 = c(params[i: (i + k -1)])
     i = i + k
-
+    
     object$PHI = matrix(data = params[i:(i + k * n - 1)],
                         nrow = k, ncol = n)
     i = i + k * n
-
+    
     return(object)
   }
-
+  
   fn.optim = function(v){
     obj = params2Object(obj, v, k, n, m)
     y = amnfis.simulate(obj, X)
-    #error = sum((d - y)^2)
+    
     y[abs(y)<0.00001] = 0.00001
     y[abs(y)>0.99999] = 0.99999
-
-    error = -sum(d * log(y) + (1 - d) * log(1 - y))
-
+    
+    error = sum((d - y)^2)
+    
+    # error = -sum(d * log(y) + (1 - d) * log(1 - y))
+    
     # cat(paste("error", error, "\n"))
     return(error)
   }
-
+  
   ###################CUERPO DE LA FUNCIÓN###############
   m = dim(X)[1]
   n = dim(X)[2]
   obj = NULL
-
+  
   #################CARGA DE PARÁMETROS ALEATORIOS(CLUSTERS, PHI_O Y PHI)###########
   obj$C = loadClusters(n, k)
   obj$phi_0 = loadRandomVector(k)
   obj$PHI = loadRandomPhi(k,n)
   ################## FIN CREACIÓN OBJECTOS ALEATORIOS#####################
-
+  
   v = object2Params(obj)
   convergencia = FALSE
   while(convergencia == FALSE){
@@ -68,22 +69,25 @@ amnfis <- function(X, d, k){
   }
   # a = optim(v, fn.optim, control = list(maxit = 20000))
   # cat(paste("convergencia ", a$convergence))
-
+  
   obj = params2Object(obj, a$par, k, n, m)
   return(obj)
-
+  
 }
 
 
 
 amnfis.simulate <- function(obj, X) {
-
+  
   n = dim(X)[2]
-
-  DISTANCES = getXiCiDistances(X, obj$C)
+  
+  # DISTANCES = getXiCiDistances(X, obj$C)
+  DISTANCES = getXiDistancesRefactor(X, obj$C)
   # print("distances...")
   # print(DISTANCES)
-  CONTRIBUTIONS = getContributions(DISTANCES)
+  MEMBERSHIP = getContributionsRefactor(DISTANCES)#esta seria la funcion membership, la de contributions no esta
+  # CONTRIBUTIONS = getContributionsRefactor(DISTANCES)
+  CONTRIBUTIONS <- contrib(MEMBERSHIP)
   # print("contributions...")
   # print(CONTRIBUTIONS)
   contributions_phi_0 = CONTRIBUTIONS %*% as.matrix(obj$phi_0)
@@ -92,7 +96,8 @@ amnfis.simulate <- function(obj, X) {
   X_PHI = X %*% t(obj$PHI)
   # print("X_PHI")
   # print(X_PHI)
-  y = apply(X_PHI, 1, sum) + contributions_phi_0
+  # y = apply(X_PHI, 1, sum) + contributions_phi_0
+  y = rowSums(X_PHI) + contributions_phi_0
   y=1/(1+exp(-y))
   return(y)
 }
@@ -100,50 +105,90 @@ amnfis.simulate <- function(obj, X) {
 
 loadData <- function(n){
   #print('creando la matriz de datos....')
-  # datos = c(0.1851488,0.3455233,-1.3720042,0.1961969,-0.2101043,-0.2215962,3.322623,-1.408931,-2.134558,-0.5122682,-0.1884232,0.5746452)
+  datos = c(0.1851488,0.3455233,-1.3720042,0.1961969,-0.2101043,-0.2215962,3.322623,-1.408931,-2.134558,-0.5122682,-0.1884232,0.5746452)
   # datos = c(-1,-1,-1,0,0,0,1,1,1,1,0,-1,1,0,-1,1,0,-1)
-  X = matrix(rnorm(12), ncol = n)#random values
-  # X = matrix(data = datos, ncol = n)
+  # X = matrix(rnorm(12), ncol = n)#random values
+  X = matrix(data = datos, ncol = n)
   return(X)
 }
 
 loadRandomVector <- function(size){
   return(rnorm(size))#random values
-  #return(c(0.3773669,1.8119634))
+  # return(c(0.3773669,1.8119634))
 }
 
 loadRandomPhi <- function(k ,n){
-  #d = c(-0.004729057,0.285950071,1.172539,0.1799518,0.1998691,-0.113449,-0.4013696,0.2711753)
-  #phi_params = matrix(d, nrow = k, ncol = n)
+  # d = c(-0.004729057,0.285950071,1.172539,0.1799518,0.1998691,-0.113449,-0.4013696,0.2711753)
+  # phi_params = matrix(d, nrow = k, ncol = n)
   phi_params = matrix(rnorm(k * n), nrow = k, ncol = n)#random values
   return(phi_params)
 }
 
 loadClusters <- function(n, k){
-  #d = c(-1.6260988,-0.5021358,1.2773631,-0.6000955,0.302947,0.7021099,1.5672107,0.757111)
-  #CLUSTER = matrix(d, nrow = n, ncol = k)
+  # d = c(-1.6260988,-0.5021358,1.2773631,-0.6000955,0.302947,0.7021099,1.5672107,0.757111)
+  # CLUSTER = matrix(d, nrow = k, ncol = n, byrow = TRUE)
   CLUSTER = matrix(rnorm(n * k), nrow = k, ncol = n)#raandom values
   return(CLUSTER)
 }
 
 getXiCiDistances <- function(X, C){#prueba
-#   CT = t(C)#traspuesta de la matrix de clusters
-#   m = dim(X)[1]
-#   k = dim(CT)[1]
-#   mat = createMatrix(m,k)
-#   for(i in 1:m){
-#     for(j in 1:k){
-#       mat[i,j] = sum((X[i,] - CT[j,])^2)# calcula la distancia de cada dato de entrada a cada cluster
-#     }
-#   }
+  #   CT = t(C)#traspuesta de la matrix de clusters
+  #   m = dim(X)[1]
+  #   k = dim(CT)[1]
+  #   mat = createMatrix(m,k)
+  #   for(i in 1:m){
+  #     for(j in 1:k){
+  #       mat[i,j] = sum((X[i,] - CT[j,])^2)# calcula la distancia de cada dato de entrada a cada cluster
+  #     }
+  #   }
   D = rdist(X,C)^2
   return(D)
+}
+
+# getXiDistancesRefactor <- function(X, C){
+#   m = dim(X)[1]
+#   n = dim(X)[2]
+#   k = dim(C)[1]
+#   replByCol = rep(k, n)
+#   replByRow = rep(m, n)
+#   transformedX = X[,rep(1:n, replByCol)]
+#   transformedC = matrix(rep(C, each=nrow(X)), nrow=m)#C[,rep(1:k, replByRow)]
+#   dista = (transformedX - transformedC)^2
+#   list_of_distances = split.along.dim(array(dista, c(m,k,n)), 3)
+#   XtoCDistances = Reduce('+', list_of_distances)
+#   return(XtoCDistances)
+# }
+
+getXiDistancesRefactor <- function(X, C){
+  m = dim(X)[1]
+  n = dim(X)[2]
+  k = dim(C)[1]
+  replByCol = rep(k, n)
+  replByRow = rep(m, n)
+  # print(replByCol)
+  transformedX = X[,rep(1:n, replByCol)]
+  # print(dim(transformedX))
+  transformedC = matrix(rep(C, each=nrow(X)), nrow=m)#C[,rep(1:k, replByRow)]
+  # print(dim(transformedC))
+  dista = (transformedX - transformedC)^2
+  distaces3D = array(dista, c(m,k,n))
+  distancesList = lapply(seq(dim(distaces3D)[3]), function(x) distaces3D[ , , x])
+  rsp = Reduce('+', distancesList)
+  return(rsp)
 }
 
 #Recibe la matriz de distancias y calcula la contribucion de cada dato a cada cluster
 getContributions <- function(distances){
   contr = apply(distances, 1, calculateContributions)#1 significa que la funcion aplica  por filas
   return(t(contr))
+}
+
+getContributionsRefactor <- function(distances){
+  return(exp(-distances/rowSums(distances)))
+}
+
+contrib <- function(membership){
+  return(membership/rowSums(membership))
 }
 
 calculateContributions <- function(X){
@@ -218,4 +263,60 @@ loadDataCl2 <- function(){
   return(cbind(vec1, vec2))
 }
 
+#para crear un array de matrices (diferentes dimensiones): matrices = array(dst, c(3,2,4))
+#funcion para convertir un arrray de matrices en una lista matrices
+split.along.dim <- function(a, n)
+  setNames(lapply(split(a, arrayInd(seq_along(a), dim(a))[, n]),
+                  array, dim = dim(a)[-n], dimnames(a)[-n]),
+           dimnames(a)[[n]])
 
+#Para sumar las matrices dentro de una lista de matrices 
+#Reduce('+', matrices)
+
+test.apply <- function(data){
+  print('aaa')
+  print(data)
+}
+mysuma <- function(mat1, mat2){
+  print("entrando a mysuma")
+  print(mat1)
+  print(mat2)
+}
+
+cuadrado <- function(datos){
+  #   print("datos")
+  #   print(datos^2)
+  return(datos^2)
+}
+
+append.Rda <- function(..., file) {
+  old.objects <- load(file, new.env())
+  save(list = c(old.objects, ...), file = file)
+}
+
+getData <- function(df, bound) {
+  # bound <- floor((nrow(df)/4)*3)         #define % of training and test set
+  
+  df <- df[sample(nrow(df)), ]           #sample rows 
+  df.train <- df[1:bound, ]              #get training set
+  df.test <- df[(bound+1):nrow(df), ]    #get test set
+  return(list(df.train, df.test))
+}
+
+calculateCEC <- function(output_test_set, real_output){
+  CEC <- sqrt(sum((real_output - output_test_set)^2) / length(real_output))
+  return(CEC);
+}
+
+calculateUC <- function(
+  output_A_from_B, output_A_from_A, output_B_from_A, output_B_from_B
+){
+  sum_error_A <- sum((output_A_from_B - output_A_from_A)^2)
+  sum_error_B <- sum((output_B_from_A - output_B_from_B)^2)
+  return(sqrt(sum_error_A + sum_error_B))
+}
+
+calculateRC <- function(output_A, output_B_from_A, output_B, output_A_from_B){
+  # sum_errors_B <- (output_A - )
+  # verificar si se puede realizar esta formula ya que los vectores son de diferentes tamanios
+}

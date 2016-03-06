@@ -317,6 +317,7 @@ calculateUC <- function(
 }
 
 calculateRC <- function(output_A, output_B_from_A, output_B, output_A_from_B){
+  #TODO
   # sum_errors_B <- (output_A - )
   # verificar si se puede realizar esta formula ya que los vectores son de diferentes tamanios
 }

@@ -321,3 +321,8 @@ calculateRC <- function(output_A, output_B_from_A, output_B, output_A_from_B){
   # sum_errors_B <- (output_A - )
   # verificar si se puede realizar esta formula ya que los vectores son de diferentes tamanios
 }
+
+transform_output <- function(output){
+  rsp <- ifelse(as.vector(output) > 0.5, 1, 0)
+  return(rsp)
+}

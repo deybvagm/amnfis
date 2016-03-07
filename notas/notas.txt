@@ -1,0 +1,15 @@
+Performance criteria:
+  Ionosphere
+    UC => 14.31     Referencia: 87.4
+    CEC => 0.69     Referencia: 98
+
+    Prueba Ionosphere con 2 clusters:
+      acc con modelo_tr clasificando test = 0.7019
+      acc con modelo_test clasificando tr = 0.8
+      CEC => 0.54
+      UC => 8.36
+    Prueba Ionosphere con 15 clusters
+      acc con modelo_tr clasificando test = 0.82
+      acc con modelo_test clasificando tr = 0.695
+      CEC => 0.42
+      UC => 8

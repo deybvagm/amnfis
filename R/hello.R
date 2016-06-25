@@ -5,7 +5,7 @@
 #' @return data
 #' @export
 #'
-amnfis <- function(X, d, k){
+amnfis <- function(X, d, k, clusters){
   
   ################FUNCIONES AUXILIARES###################
   
@@ -51,7 +51,8 @@ amnfis <- function(X, d, k){
   obj = NULL
   
   #################CARGA DE PARÁMETROS ALEATORIOS(CLUSTERS, PHI_O Y PHI)###########
-  obj$C = loadClusters(n, k)
+  # obj$C = loadClusters(n, k) # TODO aca se deben calcular los clusters pero no de forma aleatoria
+  obj$C <- clusters
   obj$phi_0 = loadRandomVector(k)
   obj$PHI = loadRandomPhi(k,n)
   ################## FIN CREACIÓN OBJECTOS ALEATORIOS#####################
@@ -99,6 +100,7 @@ amnfis.simulate <- function(obj, X) {
   # y = apply(X_PHI, 1, sum) + contributions_phi_0
   y = rowSums(X_PHI) + contributions_phi_0
   y=1/(1+exp(-y))
+  y = transform_output(y)
   return(y)
 }
 
@@ -325,4 +327,261 @@ calculateRC <- function(output_A, output_B_from_A, output_B, output_A_from_B){
 transform_output <- function(output){
   rsp <- ifelse(as.vector(output) > 0.5, 1, 0)
   return(rsp)
+}
+
+# ejecuta un clasificador lineal para cada particion y suma sus errores
+binary_classification_error <- function(formula, first_partition, second_partition) {
+  return(fit_linear_classifier(formula, first_partition) + fit_linear_classifier(formula, second_partition))
+}
+
+
+
+# TODO eliminar
+# fn.findclusters <- function(formula, data, n){
+#   model1 <- unname(fn.splitdata(formula, data))
+#   part1 <- data[model1[[1]]$part1,]
+#   part2 <- data[model1[[1]]$part2,]
+#   for(i in 1:n-1){
+#     model_p1 <- fn.splitdata(formula, part1)
+#     model_p2 <- fn.splitdata(formula, part2)
+#     selected_model <- model_p1 # Supongase que es el que tiene el menor error
+#     
+#   }
+# }
+
+
+
+
+
+
+
+# Lamma la funcion que agrupa los datos, toma el promedio por columnas de cada grupo para definir los centroides
+fn.getcentroids <- function(all_data, n, formula){
+  
+  fn.groupdata <- function(all_data, n, formula){
+    
+    if(n ==1){
+      data <- list(all_data)
+    }else{
+      models <- list()
+      
+      initial_model <- fn.splitdata(formula, all_data)
+      initial_model <- initial_model[[1]]
+      part1 <- initial_model$data[initial_model$part1,]
+      part2 <- initial_model$data[initial_model$part2,]
+      
+      idx_loop <- 3
+      
+      while(idx_loop <= n){
+        # print("entro a ciclo")
+        print(n)
+        model_a <- fn.splitdata(formula, part1)
+        model_b <- fn.splitdata(formula, part2)
+        model_a <- model_a[[1]] # TODO Hacer refactor para mejorar esto. En modelo hay una lista con un solo objeto
+        model_b <- model_b[[1]] # TODO Hacer refactor para mejorar esto. En modelo hay una lista con un solo objeto
+        
+        if(length(models) == 0){
+          models <- list(model_a, model_b)
+        }else{
+          models[[length(models) + 1]] <- model_a
+          models[[length(models) + 1]] <- model_b
+        }
+        errors <- lapply(models, fn.fetcherrors)
+        idx_min_error <- which.min(errors)
+        obj <- models[[idx_min_error]]
+        models[[idx_min_error]] <- NULL
+        part1 <- obj$data[obj$part1,] # TODO enviar data en la funcion que encuentra las mejores particiones
+        part2 <- obj$data[obj$part2,]
+        idx_loop <- idx_loop + 1
+        # fn.findclusters2(part1, part2, models, n+1, formula)
+        # part1 <-
+        # TODO Se deberían permitir clusters de un solo dato??
+        
+        # models <- ifelse(length(models) == 0, list(subpart_a, subpart_b), models[[length(models) + 1]])
+      }
+      data <- lapply(models, fn.datafrommodels)
+      data[[length(data) + 1 ]] <- part1
+      data[[length(data) + 1 ]] <- part2
+    }
+    return(data)
+  }
+  
+  fn.splitdata <- function(formula, data){
+    original <- data
+    mat <- apply(as.matrix(data[,1:ncol(data) -1]), 2, fn.getpartitions, formula = formula, data = data)
+    errors <- unlist(lapply(mat, fn.fetcherrors))
+    # print("errores a comparar en la capa superior")
+    # print(errors)
+    lowest_error_idx <- which.min(errors)
+    return(unname(mat[lowest_error_idx]))
+  }
+  
+  fn.fetcherrors <- function(object){
+    # print("dato")
+    # print(o$err)
+    return(object$error)
+  }
+  
+  fn.datafrommodels <- function(model){
+    return(model$data)
+  }
+  
+  fn.getpartitions <- function(v, formula, data){
+    # print("formula")
+    # print(formula)
+    v_replicated <- fn.replicatedata(v)
+    # print("v_replicated")
+    # print(v_replicated)
+    partitions <- t(ifelse(t(v_replicated) >= v, 1, 0))
+    # print('partition')
+    # print(partitions)
+    fit_errors <- apply(partitions, 2, fn.fitdata, formula = formula, data = data)
+    errors <- lapply(fit_errors, fn.fetcherrors)
+    errors <- unlist(errors)
+    lowes_error_idx <- which.min(errors)
+    best_partition <- fit_errors[[lowes_error_idx]]
+    # print("fit errors")
+    # print(fit_errors)
+    # print("min error")
+    # best_partition <- min(fit_errors$error)
+    # print(fit_errors)
+    return(best_partition)
+  }
+  
+  # Parte en dos conjuntos de datos, para entrenar y obtener los errores. Esto se hace por cada columna
+  fn.fitdata <- function(v_logic, formula, data){
+    # print("v_logic")
+    # print(v_logic)
+    part1 <- which(v_logic == 1, arr.ind = TRUE) # Obtiene los indices de las posiciones que tienen valor 1
+    part2 <- which(v_logic == 0, arr.ind = FALSE) # Obtiene los indices de las posiciones que tienen valor 0
+    # print("part1")
+    # print(part1)
+    # print("part2")
+    # print(part2)
+    data_part1 <- data[part1,] # Saca la primera particion del conjunto nde datos
+    data_part2 <- data[part2,] # Saca la segunda particion del conjunto de datos
+    # print("data_part1")
+    # print(data_part1)
+    # print("data_part2")
+    # print(data_part2)
+    error1 <- ifelse((nrow(data_part1) > 0 && nrow(data_part2) > 0), fit_linear_classifier(formula, data_part1), 100)#TODO Se deberia dar un error alto tambien para los conjuntos que tengan un solo dato
+    error2 <- ifelse((nrow(data_part1) > 0 && nrow(data_part2) > 0), fit_linear_classifier(formula, data_part2), 100)# TODO eliminar valores quemados
+    # obj <- NULL //TODO mejorar. Intentar retornanado una lista ref: http://stackoverflow.com/questions/9497114/how-do-i-make-an-array-of-classes-in-r
+    # obj$error <- error1 + error2
+    # obj$part1 <- part1
+    # obj$part2 <- part2
+    obj <- list(error = error1 + error2, part1 = part1, part2 = part2, data = data)
+    return(obj)
+  }
+  
+  # Replicalos datos de una columna del dataframe en una matriz cuadrada
+  fn.replicatedata <- function(v){
+    n <- length(v)
+    return(matrix(rep(v, each = n), ncol = n, byrow = TRUE))
+  }
+  
+  # Remueve la columna que representa la clase en el vector(es un vector nombrado no un dataframe lo que entra)
+  fn.removeclass <- function(v){
+    v <- v[1:length(v) - 1]
+    return(v)
+    # dataframe[, ncol(dataframe)] <- NULL
+  }
+  
+  # Ajusta un clasificador lineal para una muestra de datos y retorna el error
+  fit_linear_classifier <- function(formula, data){
+    y <- data[,ncol(data)]
+    response <- glm(formula, data = data)
+    mse <- fn.error(y, response$fitted.values)
+    return(mse)
+  }
+  
+  # Funcion de error que calcula el MSE
+  fn.error <- function(y, predictions){
+    mse <- sum((y - predictions)^2)/length(y)
+    return(mse)
+  }
+  
+  groups <- fn.groupdata(all_data, n, formula)
+  centroids <- lapply(groups, colMeans)
+  columns <- ncol(all_data) - 1
+  centroids <- lapply(centroids, fn.removeclass)
+  centroid_matrix <- matrix(unlist(centroids), ncol = columns, byrow = TRUE)
+  return(centroid_matrix)
+}
+
+normalize <- function(x){
+  return((x - min(x)) / (max(x) - min(x)))
+}
+
+
+
+
+
+
+
+
+
+
+
+# TODO evaluar la posibilidad de hacer escalamiento de variables
+
+
+# Esta seccions solo es de prueba
+mytest <- function(v){
+  err <- rnorm(1)
+  c1 <- c(1,2,4)
+  c2 <- c(3,5)
+  obj <- list(err = err, c1 = c1, c2 = c2)
+  
+  # obj$err <- err
+  # obj$c1 <- c1
+  # obj$c2 <- c2
+  # obj <- 2
+  return(obj)
+}
+
+
+#para agrega objeto a lista:
+# lst[[length(lst) + 1]] <- obj
+# para eliminar list[[1]] <- NULL
+# ref: http://stackoverflow.com/questions/17046336/here-we-go-again-append-an-element-to-a-list-in-r
+
+# Aplica una funcion por columnas para retornar las particiones que seran probadas
+getMatrix <- function(column){
+  mtx <- numeric()
+  for (x in column){
+    mtx <- cbind(mtx, column >= x)
+  }
+  return(mtx)
+}
+
+# Aplica una funcion por cada columna de la matriz de particiones, realizando las particiones y ejecutando el clasificador lineal
+find_partitions <- function(column, datos, y){
+  datos <- cbind(datos, y)
+  part1 <- matrix(datos[column==1], ncol = 4)
+  part1 <- as.data.frame(part1)
+  part2 <- matrix(datos[column==0], ncol = 4)
+  part2 <- as.data.frame(part2)
+  # response <- glm(formula = V4~., data = part1)
+  # response2 <- glm(formula = V4~., data = part2)
+  # print(length(part1$V4))
+  # print(length(response$fitted.values))
+  mse <- get_prediction_error(part1)
+    # fn.error(part1$V4, response$fitted.values)
+  # mse2 <- fn.error(part2$V4, response2$fitted.values)
+  mse2 <- get_prediction_error(part2)
+  print(mse2)
+  print(mse)
+  return(mse + mse2)
+}
+
+get_prediction_error <- function(partition){
+  error <- ifelse(nrow(partition) == 0, 0, fit_data(partition))
+  return(error)
+}
+
+fit_data <- function(partition){
+  ft <- glm(formula = V4~., data = partition)
+  mse <- fn.error(partition$V4, ft$fitted.values)
+  return(mse)
 }

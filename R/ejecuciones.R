@@ -1,0 +1,6 @@
+liver_centroids <- fn.getcentroids(all_data = X_liver_df, n = 1, formula = V7~.)
+liver_model <- amnfis(X = X_liver, d = d_liver, k = 1, clusters = liver_centroids)
+liver_predictions <- amnfis.simulate(liver_model, X_liver_test)
+liver_predictions <- transform_output(liver_predictions)
+liver_accuracy <- length(y_liver_true[y_liver_true == liver_predictions])/length(y_liver_true)
+cat(paste("liver_accuracy......", liver_accuracy))

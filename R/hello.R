@@ -5,7 +5,8 @@
 #' @return data
 #' @export
 #'
-amnfis <- function(X, d, k, clusters){
+amnfis <- function(X, d, clusters){
+  k = nrow(clusters)
   
   ################FUNCIONES AUXILIARES###################
   
@@ -116,6 +117,7 @@ loadData <- function(n){
 
 loadRandomVector <- function(size){
   return(rnorm(size))#random values
+  # return(runif(size, min = 0, max = 1))
   # return(c(0.3773669,1.8119634))
 }
 
@@ -123,6 +125,7 @@ loadRandomPhi <- function(k ,n){
   # d = c(-0.004729057,0.285950071,1.172539,0.1799518,0.1998691,-0.113449,-0.4013696,0.2711753)
   # phi_params = matrix(d, nrow = k, ncol = n)
   phi_params = matrix(rnorm(k * n), nrow = k, ncol = n)#random values
+  # phi_params = matrix(runif(k * n), nrow = k, ncol = n)#random values
   return(phi_params)
 }
 
@@ -313,15 +316,21 @@ calculateCEC <- function(output_test_set, real_output){
 calculateUC <- function(
   output_A_from_B, output_A_from_A, output_B_from_A, output_B_from_B
 ){
-  sum_error_A <- sum((output_A_from_B - output_A_from_A)^2)
-  sum_error_B <- sum((output_B_from_A - output_B_from_B)^2)
+  sum_error_A <- sum((output_B_from_A - output_A_from_A)^2)
+  sum_error_B <- sum((output_A_from_B - output_B_from_B)^2)
   return(sqrt(sum_error_A + sum_error_B))
 }
 
+# TODO la formula no concuerda con la del paper. Validar!!
 calculateRC <- function(output_A, output_B_from_A, output_B, output_A_from_B){
-  #TODO
-  # sum_errors_B <- (output_A - )
+  sum_errors_A <- sum((output_A - output_B_from_A)^2)
+  sum_errors_B <- sum((output_B - output_A_from_B)^2)
+  return(((sum_errors_A / length(output_A)) + (sum_errors_B / length(output_B))) / 2)
   # verificar si se puede realizar esta formula ya que los vectores son de diferentes tamanios
+}
+
+calculateSR <- function(output_A, output_B_from_A, output_B, output_A_from_B){
+  return(sqrt(calculateRC(output_A, output_B_from_A, output_B, output_A_from_B)))
 }
 
 transform_output <- function(output){
@@ -585,3 +594,24 @@ fit_data <- function(partition){
   mse <- fn.error(partition$V4, ft$fitted.values)
   return(mse)
 }
+
+result <- c()
+
+find.betterpartition <- function(formula, dataframe, X, d, X_test, y_true){
+  # res <- c()
+  for(i in 2:3){
+    centroids <- fn.getcentroids(all_data = dataframe, n = i, formula = formula)
+    model <- amnfis(X = X, k = i, d = d, clusters = centroids)
+    forecast <- amnfis.simulate(obj = model, X = X_test)
+    accuracy <- length(y_true[y_true == forecast]) / length(y_true)
+    result <- c(result, accuracy)
+    # res <- c(res, accuracy)
+  }
+  return(result)
+}
+
+# ionosphere - 19 clusters, tr: 200; validation: 151
+# CEC = 0.6407 
+# UC = 12.12
+# RC = 0.392798 TODO ojo que la formula no concuerda con la del paper
+# SR = 0.62

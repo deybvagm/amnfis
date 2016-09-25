@@ -6,6 +6,7 @@
 #' @export
 #'
 amnfis <- function(X, d, clusters){
+  
   k = nrow(clusters)
   
   ################FUNCIONES AUXILIARES###################
@@ -67,7 +68,7 @@ amnfis <- function(X, d, clusters){
     }else{
       v = a$par
     }
-    cat(paste("convergencia ", a$convergence))
+    # cat(paste("convergencia ", a$convergence))
   }
   # a = optim(v, fn.optim, control = list(maxit = 20000))
   # cat(paste("convergencia ", a$convergence))
@@ -84,7 +85,7 @@ amnfis.simulate <- function(obj, X) {
   n = dim(X)[2]
   
   # DISTANCES = getXiCiDistances(X, obj$C)
-  DISTANCES = getXiDistancesRefactor(X, obj$C)
+  DISTANCES = getXiDistancesRefactor(X, obj$C) 
   # print("distances...")
   # print(DISTANCES)
   MEMBERSHIP = getContributionsRefactor(DISTANCES)#esta seria la funcion membership, la de contributions no esta
@@ -189,6 +190,9 @@ getContributions <- function(distances){
 }
 
 getContributionsRefactor <- function(distances){
+  if(is.vector(distances)){
+    distances <- matrix(distances)
+  }
   return(exp(-distances/rowSums(distances)))
 }
 
@@ -518,6 +522,37 @@ fn.getcentroids <- function(all_data, n, formula){
   return(centroid_matrix)
 }
 
+fn.calculate_acc <- function(formula, n, df, X, d, X_test, y){
+  library(doParallel)
+  registerDoParallel(cores = 4)
+  centroids <- fn.getcentroids(all_data = df, n = 2, formula = formula) #Obtiene los dos primeros centroides
+  model <- amnfis(X = X, d = d, clusters = centroids)
+  forecast <- amnfis.simulate(obj = model, X = X_test)
+  acc <- length(y[y == forecast]) / length(y)
+  result <- NULL
+  result$acc <- c(acc)
+  for (j in 3:n) {
+    acc <- 0
+    vec_best_data_point <- c()
+    foreach (i = 1:nrow(X)) %dopar% {
+      vec_data_point <- X[i,]
+      centroids <- rbind(centroids, vec_data_point)
+      model <- amnfis(X = X, d = d, clusters = centroids)
+      forecast <- amnfis.simulate(obj = model, X = X_test)
+      accuracy <- length(y[y == forecast]) / length(y)
+      if(accuracy > acc){
+        acc <- accuracy
+        vec_best_data_point <- vec_data_point
+      }
+      centroids <- centroids[-nrow(centroids),] #Retira el ultimo dato para probar con otro centroide
+    }
+    centroids <- rbind(centroids, vec_best_data_point)
+    result$acc <- c(result$acc, acc)
+  }
+  result$clusters <- centroids
+  return(result)
+}
+
 normalize <- function(x){
   return((x - min(x)) / (max(x) - min(x)))
 }
@@ -598,10 +633,11 @@ fit_data <- function(partition){
 result <- c()
 
 find.betterpartition <- function(formula, dataframe, X, d, X_test, y_true){
+  print('ooo')
   # res <- c()
-  for(i in 2:3){
+  for(i in 1:30){
     centroids <- fn.getcentroids(all_data = dataframe, n = i, formula = formula)
-    model <- amnfis(X = X, k = i, d = d, clusters = centroids)
+    model <- amnfis(X = X, d = d, clusters = centroids)
     forecast <- amnfis.simulate(obj = model, X = X_test)
     accuracy <- length(y_true[y_true == forecast]) / length(y_true)
     result <- c(result, accuracy)

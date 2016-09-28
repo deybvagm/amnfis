@@ -12,7 +12,7 @@ amnfis <- function(X, d, clusters){
   ################FUNCIONES AUXILIARES###################
   
   object2Params <- function(object){
-    return(c(c(object$C), c(object$phi_0), c(object$PHI)))
+    return(c(c(object$C), c(object$phi_0), c(object$PHI), c(object$phi_lineal_component)))
   }
   
   params2Object <- function(object, params, k, n, m){
@@ -28,6 +28,9 @@ amnfis <- function(X, d, clusters){
     object$PHI = matrix(data = params[i:(i + k * n - 1)],
                         nrow = k, ncol = n)
     i = i + k * n
+    
+    object$phi_lineal_component <- matrix(data = params[i:(i + n - 1)], ncol = 1, nrow = n)
+    i <- i + n
     
     return(object)
   }
@@ -57,6 +60,8 @@ amnfis <- function(X, d, clusters){
   obj$C <- clusters
   obj$phi_0 = loadRandomVector(k)
   obj$PHI = loadRandomPhi(k,n)
+  
+  obj$phi_lineal_component <- loadRandomVector(n)
   ################## FIN CREACIÓN OBJECTOS ALEATORIOS#####################
   
   v = object2Params(obj)
@@ -100,7 +105,8 @@ amnfis.simulate <- function(obj, X) {
   # print("X_PHI")
   # print(X_PHI)
   # y = apply(X_PHI, 1, sum) + contributions_phi_0
-  y = rowSums(X_PHI) + contributions_phi_0
+  X_lineal_component <- X %*% obj$phi_lineal_component
+  y = rowSums(X_PHI) + contributions_phi_0 + X_lineal_component
   y=1/(1+exp(-y))
   y = transform_output(y)
   return(y)

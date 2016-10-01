@@ -102,11 +102,12 @@ amnfis.simulate <- function(obj, X) {
   # print("contributions_phi_0")
   # print(contributions_phi_0)
   X_PHI = X %*% t(obj$PHI)
+  X_PHI_CONTRIBUTIONS <- CONTRIBUTIONS %*% t(X_PHI)
   # print("X_PHI")
   # print(X_PHI)
   # y = apply(X_PHI, 1, sum) + contributions_phi_0
   X_lineal_component <- X %*% obj$phi_lineal_component
-  y = rowSums(X_PHI) + contributions_phi_0 + X_lineal_component
+  y = rowSums(X_PHI_CONTRIBUTIONS) + contributions_phi_0 + X_lineal_component
   y=1/(1+exp(-y))
   y = transform_output(y)
   return(y)

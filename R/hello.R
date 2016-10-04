@@ -12,7 +12,7 @@ amnfis <- function(X, d, clusters){
   ################FUNCIONES AUXILIARES###################
   
   object2Params <- function(object){
-    return(c(c(object$C), c(object$phi_0), c(object$PHI), c(object$phi_lineal_component)))
+    return(c(c(object$C), c(object$phi_0), c(object$PHI), c(object$phi_lineal_component), c(object$phi_0_lineal_component)))
   }
   
   params2Object <- function(object, params, k, n, m){
@@ -31,6 +31,9 @@ amnfis <- function(X, d, clusters){
     
     object$phi_lineal_component <- matrix(data = params[i:(i + n - 1)], ncol = 1, nrow = n)
     i <- i + n
+    
+    object$phi_0_lineal_component <- params[i]
+    i <- i + 1
     
     return(object)
   }
@@ -61,7 +64,8 @@ amnfis <- function(X, d, clusters){
   obj$phi_0 = loadRandomVector(k)
   obj$PHI = loadRandomPhi(k,n)
   
-  obj$phi_lineal_component <- loadRandomVector(n)
+  obj$phi_0_lineal_component <- loadRandomVector(1)
+  obj$phi_lineal_component <- matrix(loadRandomVector(n), ncol = 1)
   ################## FIN CREACIÓN OBJECTOS ALEATORIOS#####################
   
   v = object2Params(obj)
@@ -87,6 +91,29 @@ amnfis <- function(X, d, clusters){
 
 amnfis.simulate <- function(obj, X) {
   
+  # n = dim(X)[2]
+  # 
+  # # DISTANCES = getXiCiDistances(X, obj$C)
+  # DISTANCES = getXiDistancesRefactor(X, obj$C) 
+  # # print("distances...")
+  # # print(DISTANCES)
+  # MEMBERSHIP = getContributionsRefactor(DISTANCES)#esta seria la funcion membership, la de contributions no esta
+  # # CONTRIBUTIONS = getContributionsRefactor(DISTANCES)
+  # CONTRIBUTIONS <- contrib(MEMBERSHIP)
+  # # print("contributions...")
+  # # print(CONTRIBUTIONS)
+  # contributions_phi_0 = CONTRIBUTIONS %*% as.matrix(obj$phi_0)
+  # # print("contributions_phi_0")
+  # # print(contributions_phi_0)
+  # X_PHI = X %*% t(obj$PHI)
+  # X_PHI_CONTRIBUTIONS <- CONTRIBUTIONS %*% t(X_PHI)
+  # # print("X_PHI")
+  # # print(X_PHI)
+  # # y = apply(X_PHI, 1, sum) + contributions_phi_0
+  # X_lineal_component <- X %*% obj$phi_lineal_component
+  # y = rowSums(X_PHI_CONTRIBUTIONS) + contributions_phi_0 + X_lineal_component
+  
+  
   n = dim(X)[2]
   
   # DISTANCES = getXiCiDistances(X, obj$C)
@@ -98,16 +125,28 @@ amnfis.simulate <- function(obj, X) {
   CONTRIBUTIONS <- contrib(MEMBERSHIP)
   # print("contributions...")
   # print(CONTRIBUTIONS)
-  contributions_phi_0 = CONTRIBUTIONS %*% as.matrix(obj$phi_0)
+  # contributions_phi_0 = MEMBERSHIP %*% as.matrix(obj$phi_0)
   # print("contributions_phi_0")
   # print(contributions_phi_0)
   X_PHI = X %*% t(obj$PHI)
-  X_PHI_CONTRIBUTIONS <- CONTRIBUTIONS %*% t(X_PHI)
+  
+  phi_0_matrix <- matrix(rep(obj$phi_0, times = nrow(X_PHI)), ncol = length(obj$phi_0), byrow = TRUE)
+  
+  PHI_0_X_PHI <- phi_0_matrix + X_PHI
+  
+  X_PHI_CONTRIBUTIONS <- CONTRIBUTIONS * PHI_0_X_PHI
+  
+  X_lineal_component <- X %*% obj$phi_lineal_component
+  
+  X_lineal_component <- X_lineal_component + obj$phi_0_lineal_component
+  
   # print("X_PHI")
   # print(X_PHI)
   # y = apply(X_PHI, 1, sum) + contributions_phi_0
-  X_lineal_component <- X %*% obj$phi_lineal_component
-  y = rowSums(X_PHI_CONTRIBUTIONS) + contributions_phi_0 + X_lineal_component
+  y = rowSums(X_PHI_CONTRIBUTIONS) + as.vector(X_lineal_component)
+  # print(y)
+  
+  
   y=1/(1+exp(-y))
   y = transform_output(y)
   return(y)
@@ -133,14 +172,13 @@ loadRandomPhi <- function(k ,n){
   # d = c(-0.004729057,0.285950071,1.172539,0.1799518,0.1998691,-0.113449,-0.4013696,0.2711753)
   # phi_params = matrix(d, nrow = k, ncol = n)
   phi_params = matrix(rnorm(k * n), nrow = k, ncol = n)#random values
-  # phi_params = matrix(runif(k * n), nrow = k, ncol = n)#random values
   return(phi_params)
 }
 
 loadClusters <- function(n, k){
-  # d = c(-1.6260988,-0.5021358,1.2773631,-0.6000955,0.302947,0.7021099,1.5672107,0.757111)
-  # CLUSTER = matrix(d, nrow = k, ncol = n, byrow = TRUE)
-  CLUSTER = matrix(rnorm(n * k), nrow = k, ncol = n)#raandom values
+  d = c(-1.6260988,-0.5021358,1.2773631,-0.6000955,0.302947,0.7021099,1.5672107,0.757111)
+  CLUSTER = matrix(d, nrow = k, ncol = n, byrow = TRUE)
+  # CLUSTER = matrix(rnorm(n * k), nrow = k, ncol = n)#raandom values
   return(CLUSTER)
 }
 
@@ -658,3 +696,12 @@ find.betterpartition <- function(formula, dataframe, X, d, X_test, y_true){
 # UC = 12.12
 # RC = 0.392798 TODO ojo que la formula no concuerda con la del paper
 # SR = 0.62
+
+
+loadLinealPhi <- function(){
+  return(c(0.2128829, -0.9370115, -1.6049613,  0.1094789))
+}
+
+loadLinealPhi_0 <- function(){
+  return(-0.5006948)
+}

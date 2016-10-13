@@ -109,12 +109,12 @@ amnfis.simulate <- function(obj, X) {
   DISTANCES = getXiDistancesRefactor(X, obj$C)
   # print("distances...")
   # print(DISTANCES)
-  MEMBERSHIP = getContributionsRefactor(DISTANCES)#esta seria la funcion membership, la de contributions no esta
+  MEMBERSHIP = getContributionsRefactor(DISTANCES)
   # CONTRIBUTIONS = getContributionsRefactor(DISTANCES)
-  # CONTRIBUTIONS <- contrib(MEMBERSHIP)
+  CONTRIBUTIONS <- contrib(MEMBERSHIP)
   # print("contributions...")
   # print(CONTRIBUTIONS)
-  contributions_phi_0 = MEMBERSHIP %*% as.matrix(obj$phi_0)
+  # contributions_phi_0 = MEMBERSHIP %*% as.matrix(obj$phi_0)
   # print("contributions_phi_0")
   # print(contributions_phi_0)
   X_PHI = X %*% t(obj$PHI)
@@ -123,13 +123,14 @@ amnfis.simulate <- function(obj, X) {
 
   PHI_0_X_PHI <- phi_0_matrix + X_PHI
 
-  X_PHI_CONTRIBUTIONS <- MEMBERSHIP * PHI_0_X_PHI
+  X_PHI_CONTRIBUTIONS <- CONTRIBUTIONS * PHI_0_X_PHI
   # print("X_PHI")
   # print(X_PHI)
   # y = apply(X_PHI, 1, sum) + contributions_phi_0
   y = rowSums(X_PHI_CONTRIBUTIONS)
   
   y=1/(1+exp(-y))
+  print(y)
   y = transform_output(y)
   return(y)
 }
@@ -137,7 +138,8 @@ amnfis.simulate <- function(obj, X) {
 
 loadDataAmnfis <- function(n){
   #print('creando la matriz de datos....')
-  datos = c(0.1851,0.3455,-1.3720,0.1961,-0.2101,-0.2215,3.3226,-1.4089,-2.1345,-0.5122,-0.1884,0.5746)
+  # datos = c(0.1851,0.3455,-1.3720,0.1961,-0.2101,-0.2215,3.3226,-1.4089,-2.1345,-0.5122,-0.1884,0.5746)
+  datos = c(1,2,1,2,1,1,2,2,3,3,3,3,2,2,1,0,0,1,0,1)
   # datos = c(-1,-1,-1,0,0,0,1,1,1,1,0,-1,1,0,-1,1,0,-1)
   # X = matrix(rnorm(12), ncol = n)#random values
   X = matrix(data = datos, ncol = n)
@@ -152,6 +154,7 @@ loadRandomVector <- function(size){
 
 loadRandomPhi <- function(k ,n){
   # d = c(-0.0047,0.2859,1.1725,0.1799,0.1998,-0.1134,-0.4013,0.2711)
+  # d = c(-0.0047,0.2859,1.1725,0.1799)
   # phi_params = matrix(d, nrow = k, ncol = n)
   phi_params = matrix(rnorm(k * n), nrow = k, ncol = n)#random values
   # phi_params = matrix(runif(k * n), nrow = k, ncol = n)#random values
@@ -159,7 +162,8 @@ loadRandomPhi <- function(k ,n){
 }
 
 loadClusters <- function(n, k){
-  d = c(-1.6260,-0.5021,1.2773,-0.6000,0.3029,0.7021,1.5672,0.7571)
+  # d = c(-1.6260,-0.5021,1.2773,-0.6000,0.3029,0.7021,1.5672,0.7571)
+  d = c(-1.6260,-0.5021,0.3029,0.7021)
   CLUSTER = matrix(d, nrow = k, ncol = n, byrow = TRUE)
   # CLUSTER = matrix(rnorm(n * k), nrow = k, ncol = n)#raandom values
   return(CLUSTER)

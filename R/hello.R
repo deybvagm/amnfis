@@ -8,6 +8,7 @@
 amnfis <- function(X, d, clusters){
   
   k = nrow(clusters)
+  # print(k)
   
   ################FUNCIONES AUXILIARES###################
   
@@ -39,9 +40,9 @@ amnfis <- function(X, d, clusters){
     y[abs(y)<0.00001] = 0.00001
     y[abs(y)>0.99999] = 0.99999
     
-    error = sum((d - y)^2)
+    # error = sum((d - y)^2)
     
-    # error = -sum(d * log(y) + (1 - d) * log(1 - y))
+    error = -sum(d * log(y) + (1 - d) * log(1 - y))
     
     # cat(paste("error", error, "\n"))
     return(error)
@@ -130,7 +131,7 @@ amnfis.simulate <- function(obj, X) {
   y = rowSums(X_PHI_CONTRIBUTIONS)
   
   y=1/(1+exp(-y))
-  print(y)
+  # print(y)
   y = transform_output(y)
   return(y)
 }

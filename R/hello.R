@@ -41,13 +41,14 @@ amnfis <- function(X, d, clusters){
   fn.optim = function(v){
     obj = params2Object(obj, v, k, n, m)
     y = amnfis.simulate(obj, X)
+    # print(y)
     
-    y[abs(y)<0.00001] = 0.00001
-    y[abs(y)>0.99999] = 0.99999
+    y[y == 0] = 0.00001
+    y[y == 1] = 0.99999
     
-    error = sum((d - y)^2)
+    # error = sum((d - y)^2)
     
-    # error = -sum(d * log(y) + (1 - d) * log(1 - y))
+    error = -sum(d * log(y) + (1 - d) * log(1 - y))
     
     # cat(paste("error", error, "\n"))
     return(error)
@@ -71,7 +72,8 @@ amnfis <- function(X, d, clusters){
   v = object2Params(obj)
   convergencia = FALSE
   while(convergencia == FALSE){
-    a = optim(v, fn.optim, method = 'BFGS')
+    # a = optim(v, fn.optim, method = 'BFGS', control = list(fnscale=-10))
+    a = optim(v, fn = fn.optim, method = 'BFGS')
     if(a$convergence == 0){
       convergencia = TRUE
     }else{

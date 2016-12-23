@@ -1,11 +1,11 @@
-obj <- NULL
-obj$C <- loadClusters(2,2)
-obj$phi_0 = loadRandomVector(2)
-obj$PHI = loadRandomPhi(2,2)
-obj
+ob <- NULL
+ob$C <- loadClusters(2,2)
+ob$phi_0 = loadRandomVector(2)
+ob$PHI = loadRandomPhi(2,2)
+ob
 X <- loadDataAmnfis(2)
 X
-amnfis.simulate(obj, X)
+amnfis.simulate(ob, X)
 
 df <- data.frame(X)
 df$y <- c(0,0,0,0,0,1,1,1,1,1)
@@ -23,3 +23,8 @@ xyplot( X2 ~ X1 , data = df, groups = y,
           panel.abline(intercept , slope)
           panel.grid(...)
         })
+
+
+
+mdl <- amnfis(X, df$y, ob$C)
+forecast <- amnfis.simulate(mdl, X, ob$C)

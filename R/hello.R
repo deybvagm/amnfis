@@ -13,15 +13,16 @@ amnfis <- function(X, d, clusters){
   ################FUNCIONES AUXILIARES###################
   
   object2Params <- function(object){
-    return(c(c(object$C), c(object$phi_0), c(object$PHI)))
+    # return(c(c(object$C), c(object$phi_0), c(object$PHI))) incluye el calculo de los parametros de los clusters
+    return(c(c(object$phi_0), c(object$PHI))) # No incluye el calculo de los centros de los clusters
   }
   
   params2Object <- function(object, params, k, n, m){
-    i = 0
+    i = 1
     
-    object$C = matrix(data = params[i:(i + k * n)],
-                      nrow = k, ncol = n)
-    i = i + k * n + 1
+    # object$C = matrix(data = params[i:(i + k * n)],
+    #                   nrow = k, ncol = n)
+    # i = i + k * n + 1
     
     object$phi_0 = c(params[i: (i + k -1)])
     i = i + k
@@ -35,14 +36,14 @@ amnfis <- function(X, d, clusters){
   
   fn.optim = function(v){
     obj = params2Object(obj, v, k, n, m)
-    y = amnfis.simulate(obj, X)
+    y = amnfis.simulate(obj, X, clusters)
     
-    y[abs(y)<0.00001] = 0.00001
-    y[abs(y)>0.99999] = 0.99999
+    # y[abs(y)<0.00001] = 0.00001
+    # y[abs(y)>0.99999] = 0.99999
     
-    # error = sum((d - y)^2)
+    error = sum((d - y)^2)
     
-    error = -sum(d * log(y) + (1 - d) * log(1 - y))
+    # error = -sum(d * log(y) + (1 - d) * log(1 - y))
     
     # cat(paste("error", error, "\n"))
     return(error)
@@ -54,8 +55,7 @@ amnfis <- function(X, d, clusters){
   obj = NULL
   
   #################CARGA DE PARÁMETROS ALEATORIOS(CLUSTERS, PHI_O Y PHI)###########
-  # obj$C = loadClusters(n, k) # TODO aca se deben calcular los clusters pero no de forma aleatoria
-  obj$C <- clusters
+  # obj$C <- clusters
   obj$phi_0 = loadRandomVector(k)
   obj$PHI = loadRandomPhi(k,n)
   ################## FIN CREACIÓN OBJECTOS ALEATORIOS#####################
@@ -81,7 +81,7 @@ amnfis <- function(X, d, clusters){
 
 
 
-amnfis.simulate <- function(obj, X) {
+amnfis.simulate <- function(obj, X, C) {
   
   # n = dim(X)[2]
   # 
@@ -107,7 +107,7 @@ amnfis.simulate <- function(obj, X) {
   n = dim(X)[2]
 
   # DISTANCES = getXiCiDistances(X, obj$C)
-  DISTANCES = getXiDistancesRefactor(X, obj$C)
+  DISTANCES = getXiDistancesRefactor(X, C)
   # print("distances...")
   # print(DISTANCES)
   MEMBERSHIP = getContributionsRefactor(DISTANCES)
@@ -119,7 +119,7 @@ amnfis.simulate <- function(obj, X) {
   # print("contributions_phi_0")
   # print(contributions_phi_0)
   X_PHI = X %*% t(obj$PHI)
-
+  
   phi_0_matrix <- matrix(rep(obj$phi_0, times = nrow(X_PHI)), ncol = length(obj$phi_0), byrow = TRUE)
 
   PHI_0_X_PHI <- phi_0_matrix + X_PHI
@@ -130,9 +130,13 @@ amnfis.simulate <- function(obj, X) {
   # y = apply(X_PHI, 1, sum) + contributions_phi_0
   y = rowSums(X_PHI_CONTRIBUTIONS)
   
-  y=1/(1+exp(-y))
+  y[y<-5] <- 0.01
+  y[y>5] <-  0.99
+  y[y>= -5 && y<=5] <- 1/(1+exp(-y))
+  
+  # y=1/(1+exp(-y))
   # print(y)
-  y = transform_output(y)
+  # y = transform_output(y)
   return(y)
 }
 
@@ -164,7 +168,8 @@ loadRandomPhi <- function(k ,n){
 
 loadClusters <- function(n, k){
   # d = c(-1.6260,-0.5021,1.2773,-0.6000,0.3029,0.7021,1.5672,0.7571)
-  d = c(-1.6260,-0.5021,0.3029,0.7021)
+  # d = c(-1.6260,-0.5021,0.3029,0.7021)
+  d <- c(1.4,2.2,2.2,0.4)
   CLUSTER = matrix(d, nrow = k, ncol = n, byrow = TRUE)
   # CLUSTER = matrix(rnorm(n * k), nrow = k, ncol = n)#raandom values
   return(CLUSTER)
@@ -663,7 +668,7 @@ fit_data <- function(partition){
   return(mse)
 }
 
-result <- c()
+# result <- c()
 
 find.betterpartition <- function(formula, dataframe, X, d, X_test, y_true){
   print('ooo')

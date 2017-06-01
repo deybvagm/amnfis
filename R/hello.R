@@ -38,12 +38,17 @@ amnfis <- function(X, d, clusters){
     obj = params2Object(obj, v, k, n, m)
     y = amnfis.simulate(obj, X, clusters)
     
-    y[abs(y)<0.00001] = 0.00001
-    y[abs(y)>0.99999] = 0.99999
+    # print('Mayores a 1')
+    # print(y[y > 1])
+    # print('Menores a 0')
+    # print(y[y < 0])
     
-    # error = sum((d - y)^2)
+    # y[y<0.00001] = 0.00001
+    # y[y>0.99999] = 0.99999
     
-    error = -sum(d * log(y) + (1 - d) * log(1 - y))
+    error = sum((d - y)^2)
+    
+    # error = -sum(d * log(y) + (1 - d) * log(1 - y))
     # error = -sum(d * log(y))
     
     # cat(paste("error", error, "\n"))
@@ -153,7 +158,8 @@ loadDataAmnfis <- function(n){
 }
 
 loadRandomVector <- function(size){
-  return(rnorm(size, mean = 0.5, sd = 0.2))#random values
+  # return(rnorm(size, mean = 0.5, sd = 0.2))#random values betwen 0 and 1. Enable when scaled data
+  return(rnorm(size))
   # return(runif(size, min = 0, max = 1))
   # return(c(0.3773,1.8119))
 }
@@ -162,7 +168,8 @@ loadRandomPhi <- function(k ,n){
   # d = c(-0.0047,0.2859,1.1725,0.1799,0.1998,-0.1134,-0.4013,0.2711)
   # d = c(-0.0047,0.2859,1.1725,0.1799)
   # phi_params = matrix(d, nrow = k, ncol = n)
-  phi_params = matrix(rnorm(k * n, mean = 0.5, sd = 0.2), nrow = k, ncol = n)#random values
+  # phi_params = matrix(rnorm(k * n, mean = 0.5, sd = 0.2), nrow = k, ncol = n)#random values between 0 and 1. Enable when scaled data
+  phi_params = matrix(rnorm(k * n), nrow = k, ncol = n)#random values
   # phi_params = matrix(runif(k * n), nrow = k, ncol = n)#random values
   return(phi_params)
 }
